@@ -1,46 +1,70 @@
-const Appointment = require('../models/Appointment');
+const Appointment = require('../models/appointment');
+const { updateGoogleCalendarEvent, setCredentials } = require('../services/googleCalendarService');
 
 const getAppointments = async (req, res) => {
   try {
     const appointments = await Appointment.find();
     res.status(200).json(appointments);
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    console.error('Error retrieving appointments:', error);
+    res.status(500).json({ message: 'Internal Server Error' });
   }
 };
 
 const addAppointment = async (req, res) => {
-  const { patient, date, time, notes } = req.body;
-  const newAppointment = new Appointment({ patient, date, time, notes });
+  const { patient, date, time, notes, googleTokens, eventId } = req.body;
+  setCredentials(googleTokens);
 
   try {
-    const savedAppointment = await newAppointment.save();
-    res.status(201).json(savedAppointment);
+    const newAppointment = new Appointment({
+      patient,
+      date,
+      time,
+      notes,
+      eventId
+    });
+    await newAppointment.save();
+
+    await updateGoogleCalendarEvent(eventId, date, time);
+
+    res.status(201).json(newAppointment);
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    console.error('Error adding appointment:', error);
+    res.status(500).json({ message: 'Internal Server Error' });
   }
 };
 
 const updateAppointment = async (req, res) => {
-  const { id } = req.params;
-  const { patient, date, time, notes } = req.body;
+  const { appointmentId } = req.params;
+  const { date, time, googleTokens, eventId } = req.body;
+
+  setCredentials(googleTokens);
 
   try {
-    const updatedAppointment = await Appointment.findByIdAndUpdate(id, { patient, date, time, notes }, { new: true });
+    const updatedAppointment = await Appointment.findByIdAndUpdate(
+      appointmentId,
+      { date, time },
+      { new: true }
+    );
+    await updateGoogleCalendarEvent(eventId, date, time);
+
     res.status(200).json(updatedAppointment);
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    console.error('Error updating appointment:', error);
+    res.status(500).json({ message: 'Internal Server Error' });
   }
 };
 
 const deleteAppointment = async (req, res) => {
-  const { id } = req.params;
+  const { appointmentId } = req.params;
 
   try {
-    await Appointment.findByIdAndDelete(id);
-    res.status(200).json({ message: 'Appointment deleted successfully' });
+    await Appointment.findByIdAndDelete(appointmentId);
+
+    res.status(204).end();
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    console.error('Error deleting appointment:', error);
+    res.status(500).json({ message: 'Internal Server Error' });
   }
 };
 

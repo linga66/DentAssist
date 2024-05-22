@@ -6,7 +6,8 @@ const dotenv = require('dotenv');
 dotenv.config();
 
 const patientRoutes = require('./routes/patientRoutes');
-const appointmentRoutes = require('./routes/appointmentRoutes');  // Ensure this import is correct
+const appointmentRoutes = require('./routes/appointmentRoutes');  
+const authRoutes = require('./routes/authRoutes');
 
 const app = express();
 
@@ -14,7 +15,8 @@ app.use(cors());
 app.use(express.json());
 
 app.use('/api/patients', patientRoutes);
-app.use('/api/appointments', appointmentRoutes);  // Ensure the route path is correct
+app.use('/api/appointments', appointmentRoutes);  
+app.use('/auth', authRoutes);
 
 const PORT = process.env.PORT || 5000;
 
